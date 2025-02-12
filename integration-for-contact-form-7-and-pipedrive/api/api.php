@@ -180,9 +180,14 @@ public function verify_files($files,$old=array()){
   return $files;  
 }
 public function push_object($module,$fields,$meta){ 
-
- // $arr= $this->post_crm('persons/5'); 
- // var_dump($arr); die();
+    
+  //  $var=array('name'=>'large','prices'=>array( array('currency'=>'USD','price'=>10)) );
+   // $post=array('name'=>'third product','code'=>'third','prices'=>array(array('price'=>'25','currency'=>'USD')),'product_variations'=>array( ));
+ // $arr= $this->post_crm('products/7/variations','post',json_encode($var)); 
+//$v=array('product_id'=>2,'item_price'=>20,'quantity'=>3);
+//  $arr=$this->post_crm($module.'s/5/products','post',json_encode($v));
+//  $arr= $this->post_crm('products/2','get'); 
+// var_dump($arr); die();
 //check primary key
  $extra=array();
 
@@ -399,6 +404,22 @@ if(!empty($arr['error'])){
 }else if(!empty($arr['data']['id'])){
 $id=$arr['data']['id'];        
 
+if(!empty($meta['order_items']) && $module == 'deal'){
+   $order_res=$this->get_pipe_products($meta); 
+   $zoho_products=$order_res['res']; 
+   if(isset($order_res['count']) && !empty($zoho_products) && $order_res['count'] > count($zoho_products)){ //if some item failed , do not process order
+    $method=''; $arr=array('code'=>'lines_missmatch','message'=>'Some Pipedrive line items failed');   
+   } 
+  
+  if(is_array($order_res['extra'])){
+  $extra=array_merge($extra, $order_res['extra']);
+  }
+  $fields['lines']=$zoho_products;
+  foreach($zoho_products as $k=>$v){
+  $extra['Add Line '.$k]=$this->post_crm($module.'s/'.$id.'/products','post',json_encode($v));     
+  }
+}
+
 if(!empty($files)){ //$related['files']
  $camp_path='files';  
  $upload=wp_upload_dir();  
@@ -447,6 +468,200 @@ $note_response= $this->post_crm( $object_url,'post',$note_post);
  }
 
 return array("error"=>$error,"id"=>$id,"link"=>$link,"action"=>$action,"status"=>$status,"data"=>$fields,"response"=>$arr,"extra"=>$extra);
+}
+
+public function get_wc_items($meta){
+      $_order=self::$_order;
+    //  $fees=$_order->get_shipping_total();
+    //  $fees=$_order-> get_total_discount();
+    //  $fees=$_order-> get_total_tax();
+
+      
+     $products=array();  $order_items=$items=array(); 
+     
+      if(is_object($_order) && method_exists($_order,'get_items')){
+   $items=$_order->get_items(); 
+ }
+ 
+if(is_array($items) && count($items)>0 ){
+foreach($items as $item_id=>$item){
+
+$sku=$img_id=$cat=$var_name=''; $discount=$qty=$unit_price=$tax=$total=$cost=$cost_woo=$stock=0;
+if(method_exists($item,'get_product')){
+  // $p_id=$v->get_product_id();  
+  
+   $product=$item->get_product();
+   if(!$product){ continue; } //product deleted but exists in line items of old order
+        $total=floatval($item->get_total());
+   $total=round($total,2);
+   $qty = $item->get_quantity();  
+   $tax = $item->get_total_tax();
+   if(!empty($tax) && !empty($qty)){
+       $tax=floatval($tax)/$qty;
+   }
+   $title=$product->get_title();
+   
+  // $title=$item->get_name();
+   $sku=$product->get_sku();     
+   $unit_price=floatval($product->get_price());  
+   $unit_price=round($unit_price,2);  
+    $parent_id=$product->get_parent_id();
+    $product_id=$product->get_id(); 
+    if(method_exists($_order,'get_item_total')){
+        $discount=$_order->get_total_discount(); 
+       $cost=(float)$_order->get_item_total($item,false,true); //including woo coupon discuont
+       $cost_woo=(float)$_order->get_item_subtotal($item, false, true); // does not include coupon discounts
+   
+     if(!empty($meta['item_price_custom'])){
+      $cost=(float)wc_get_order_item_meta($item->get_id(),$meta['item_price_custom'],true); 
+     }   
+       $cost=round($cost,2);
+       $cost_woo=round($cost_woo,2);
+    }
+    if(method_exists($product,'get_stock_quantity')){
+   $stock=$product->get_stock_quantity();
+  $img_id=$product->get_image_id(); //
+  $terms = get_the_terms( $product->get_id() , 'product_cat' );
+  if(!empty($terms[0]->name)){
+   $cat=$terms[0]->name;   
+  }
+}
+    
+   
+   if(!empty($parent_id)){
+         $product_simple=new WC_Product($parent_id);
+         $sku=$product_simple->get_sku(); 
+     // append variation names ,  $item->get_name() does not support more than 3 variation names
+          $attrs=$product->get_attributes(); //$item->get_formatted_meta_data( '' )
+            $var_info=array(); //var_dump($attrs,$product_id); die();
+             if(is_array($attrs) && count($attrs)>0){
+                 foreach($attrs as $attr_key=>$attr_val){   //var_dump($attr_val);
+                 if(!is_object($attr_val)){
+                    // $att_name=wc_attribute_label($attr_key,$product);
+                     $term = get_term_by( 'slug', $attr_val, $attr_key );
+                 if ( taxonomy_exists( $attr_key ) ) {
+                $term = get_term_by( 'slug', $attr_val, $attr_key );
+                if ( ! is_wp_error( $term ) && is_object( $term ) && $term->name ) {
+                    $attr_val = $term->name;
+                }    
+            } 
+            if(!empty($attr_val)){
+            $var_info[]=$attr_val;
+            }    
+                 } }
+             }
+          if(!empty($var_info)){
+          $var_name=implode(', ',$var_info);    
+          } 
+          $unit_price=0; //empty of variables in woo   
+   }
+    if(empty($sku)){
+        $sku='wc-'.$product_id;
+    }
+   if(empty($total)){ $unit_price=0; }
+ }
+
+  $temp=array('sku'=>$sku,'unit_price'=>$unit_price,'title'=>wp_strip_all_tags($title),'qty'=>$qty,'tax'=>$tax,'total'=>$total,'cost'=>$cost,'cost_woo'=>$cost_woo,'qty_stock'=>$stock,'img_id'=>$img_id,'cat'=>$cat,'tax_id'=>'','var_name'=>$var_name,'discount'=>$discount);
+          if(method_exists($product,'get_stock_quantity')){
+  // $temp['stock']=$product->get_stock_quantity();
+  
+   if(!(!empty($meta['item_tax']) && $meta['item_tax'] == 'none')){ 
+   $item_tax=$item->get_taxes(); //var_dump($item_tax); die();
+if(!empty($item_tax['total'])){
+    $tax=0;
+foreach($item_tax['total'] as $tax_id=>$v){
+$tax+=WC_Tax::get_rate_percent($tax_id);  //WC_Tax::_get_tax_rate(4);
+} 
+$temp['tax_id']=$tax;  
+   }
+   
+}
+
+} 
+if(!empty($meta['item_desc'])){
+    $temp['item_desc']=$this->process_tags($meta['item_desc'],$item);
+}
+     $order_items[]=$temp;     
+      }
+     } 
+ // var_dump($order_items); die();   
+   return $order_items;       
+}
+public function add_pipedrive_var($meta){ 
+
+}
+public function get_pipe_products($meta){ 
+    
+     $sales_response=array();  $extra=array();
+     $items=$this->get_wc_items($meta); $items_count=0;
+     $currency=!empty($meta['currency']) ? $meta['currency'] : 'USD';
+     if(is_array($items) && count($items)>0 ){
+         $n=0;  $items_count=count($items);
+      foreach($items as $item){
+          $n++; //var_dump($item); continue; 
+        $search=$item['sku']; $field='code';
+          if(!empty($meta['items_search']) ){
+          $search=$item[$meta['items_search']]; $field='name';    
+          }
+    $id=$var_id='';  
+         
+    $search_post=array('term'=>$search,'fields'=>$field);  
+$item_res=$this->post_crm('products/search','get',$search_post); 
+$extra['Search item - '.$n]=$search_post; 
+$extra['Response item - '.$n]=$item_res; 
+if(!empty($item_res['data']['items'])){
+ $id=$item_res['data']['items'][0]['item']['id'];  
+ $extra['Response item - '.$n]=$item_res['data']['items'][0]['item']; 
+ if(!empty($item['var_name'])){
+     $arr= $this->post_crm('products/'.$id,'get');
+     if(!empty($arr['data']['product_variations'])){
+   foreach($arr['data']['product_variations'] as $var){
+     if(!empty($var['name']) && $var['name'] == $item['var_name']){
+     $var_id=$var['id'];    
+     }  
+   }
+     } 
+} 
+}else{
+   $post=array('name'=>$item['title'],'code'=>$item['sku'],'prices'=>array(array('price'=>$item['unit_price'],'currency'=>$currency)));
+  $arr= $this->post_crm('products','post',json_encode($post));  
+  $extra['POST item - '.$n]=$post;
+  $extra['Create item Res - '.$n]=$arr;
+ if(!empty($arr['data']['id'])){ $id=$arr['data']['id']; }  
+    
+}
+ if(!empty($item['var_name']) && empty($var_id)){
+      $var=array('name'=>$item['var_name'],'prices'=>array( array('price'=>$item['cost'],'currency'=>$currency)) );
+  $arr=$this->post_crm('products/'.$id.'/variations','post',json_encode($var));  
+    $extra['Variation item - '.$n]=$post;
+  $extra['Create Var Res - '.$n]=$arr;
+  if(!empty($arr['data']['id'])){ $var_id=$arr['data']['id']; }   
+ }
+
+if(!empty($id)){ 
+$product_detail=array('product_id'=>$id,'item_price'=>$item['cost'],'quantity'=>$item['qty']);
+if(!empty($var_id)){
+  $product_detail['product_variation_id']=$var_id;  
+}
+if(!empty($item['item_desc'])){
+  $product_detail['comments']=$item['item_desc'];  
+}
+
+if(!empty($item['tax'])){
+  $product_detail['tax']=$item['tax'];  
+}
+  $product_detail['tax_method']=empty($meta['item_tax']) ? 'inclusive' : $meta['item_tax'];  
+if(!empty($meta['item_discount']) && !empty($item['discount'])){
+  $product_detail['discount']=$item['discount'];  
+  $product_detail['discount_type']='amount';  
+}
+$sales_response[]=$product_detail;
+}
+ 
+      }
+     }
+   //  die('----');
+     return array('res'=>$sales_response,'extra'=>$extra,'count'=>$items_count);
 }
 
 public function post_crm($path,$method='get',$body=''){
