@@ -2,7 +2,7 @@
 /**
 * Plugin Name: Integration for Contact Forms and Pipedrive
 * Description: Integrates Contact Form 7, <a href="https://wordpress.org/plugins/contact-form-entries/">Contact Form Entries Plugin</a> and many other forms with Pipedrive allowing form submissions to be automatically sent to your Pipedrive account 
-* Version: 1.2.3
+* Version: 1.2.4
 * Requires at least: 3.8
 * Author URI: https://www.crmperks.com
 * Plugin URI: https://www.crmperks.com/plugins/contact-form-plugins/contact-form-pipedrive-plugin/
@@ -25,7 +25,7 @@ class vxcf_pipedrive {
   public  $crm_name = "pipedrive";
   public  $id = "vxcf_pipedrive";
   public  $domain = "vxcf-pipedrive";
-  public  $version = "1.2.3";
+  public  $version = "1.2.4";
   public  $update_id = "6000045";
   public  $min_cf_version = "1.0";
   public $type = "vxcf_pipedrive";
@@ -674,7 +674,7 @@ if(!empty($form['form_fields'])){
    if(!empty($tag['custom_id']) ){
        if(empty($tag['field_type'])){ $tag['field_type']=$tag['custom_id']; }
        if(!in_array($tag['field_type'],array('html','step','honeypot','recaptcha','recaptcha_v3'))){
-       $field=array('id'=>$tag['custom_id']);
+       $field=array('id'=>$tag['custom_id']); 
        $field['name']=$tag['custom_id'];
        $field['label']=$tag['field_label'];
        $field['type']=$tag['field_type'];
@@ -959,7 +959,7 @@ return $result;
       $value=$value['value'];   
      }
      if(!is_array($value)){
-          $value=maybe_unserialize($value);
+         // $value=maybe_unserialize($value);
      }
   
   }else if(isset($_REQUEST[$field_id])){ 
