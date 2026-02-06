@@ -120,7 +120,7 @@ $field=array('label'=>$label,'name'=>$v['key'],'type'=>$v['field_type']);
   $field['eg']='3 digit currency (USD)';   
  } 
  if($v['key'] == 'stage_id'){
-      $stages_arr=$this->post_crm('stages','get');
+      $stages_arr=$this->post_crm('stages','get',array('limit'=>'500'));
       if(!empty($stages_arr['data'])){
       $ops=array(); 
       foreach($stages_arr['data'] as $vv){
