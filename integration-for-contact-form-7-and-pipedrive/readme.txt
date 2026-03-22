@@ -3,8 +3,8 @@ Contributors: crmperks
 Tags: ninja forms pipedrive, contact form 7 pipedrive, WPForms pipedrive, elementor forms pipedrive, contact form 7 pipedrive integration
 Requires at least: 3.8
 Tested up to: 6.9
-Stable tag: 1.2.5
-Version: 1.2.5
+Stable tag: 1.2.6
+Version: 1.2.6
 Requires PHP: 5.3
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -140,6 +140,11 @@ You can easily integrate contact form 7 with pipedrive by following these steps.
 
 
 == Changelog ==
+
+
+= 1.2.6 =
+* fixed "mfile upload field without entries plguin" issue.
+* fixed "fixed file upload to pipedrive" issue.
 
 = 1.2.5 =
 * fixed "missing pipelines" issue.

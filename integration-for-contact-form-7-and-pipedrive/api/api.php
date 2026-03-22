@@ -692,7 +692,7 @@ $delimiter = '-------------' . $boundary;
 $head['Content-Type']='multipart/form-data; boundary='.$delimiter;
 $body = $this->build_data_files($boundary, $body, $files,$file_name);
 $head['Content-Length']=strlen($body);
-$head['Host']='crmperks-sandbox.pipedrive.com';
+//$head['Host']='crmperks-sandbox.pipedrive.com';
 }    
 
        $args = array(

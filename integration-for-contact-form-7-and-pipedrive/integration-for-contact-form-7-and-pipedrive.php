@@ -2,7 +2,7 @@
 /**
 * Plugin Name: Integration for Contact Forms and Pipedrive
 * Description: Integrates Contact Form 7, <a href="https://wordpress.org/plugins/contact-form-entries/">Contact Form Entries Plugin</a> and many other forms with Pipedrive allowing form submissions to be automatically sent to your Pipedrive account 
-* Version: 1.2.5
+* Version: 1.2.6
 * Requires at least: 3.8
 * Author URI: https://www.crmperks.com
 * Plugin URI: https://www.crmperks.com/plugins/contact-form-plugins/contact-form-pipedrive-plugin/
@@ -25,7 +25,7 @@ class vxcf_pipedrive {
   public  $crm_name = "pipedrive";
   public  $id = "vxcf_pipedrive";
   public  $domain = "vxcf-pipedrive";
-  public  $version = "1.2.5";
+  public  $version = "1.2.6";
   public  $update_id = "6000045";
   public  $min_cf_version = "1.0";
   public $type = "vxcf_pipedrive";
@@ -350,6 +350,9 @@ if(is_array($fields)){
       $name=$v['name'];
      if(isset($detail[$name])){
          $val=$detail[$name];
+     if(is_serialized($val)){
+           $val=unserialize($val, array('allowed_classes' => false));
+         }
      if($v['type'] == 'file'){
           $val= wp_get_attachment_url($val) ;
              $base_url=get_site_url();
