@@ -18,7 +18,7 @@ function __construct($info) {
        $this->info= $info;
        if(!empty($info['data']['api_key'])){
         $this->api_key=$info['data']['api_key'];
-            $this->url=trailingslashit($info['data']['app_url']).'v1/';
+            $this->url=trailingslashit($info['data']['app_url']).'api/';
        }
     }
     }
@@ -57,8 +57,8 @@ $arr=$users['error'];
 
 public function get_crm_fields($module,$fields_type=false){
 
-$fields=$this->post_crm($module.'Fields','get');
-//var_dump($fields,$module); // die();
+$fields=$this->post_crm($module.'Fields','get'); //'v1/'.
+//var_dump($fields,$module);  die(json_encode($fields));
 
 $res=array(); $standard=array('name','first_name','last_name','email','label','title','stage_id','value'); 
 $skip=array('open_deals_count','activities_count','closed_deals_count','lost_deals_count','won_deals_count','next_activity_date','last_activity_date','update_time','done_activities_count','last_incoming_mail_time','email_messages_count','undone_activities_count','last_outgoing_mail_time','person_name','person_phone','person_email','org_name','org_address','source','product_amount','product_quantity');
@@ -73,7 +73,6 @@ if($module == 'lead'){
          } 
       }
   }
-   // 
 } 
 foreach($fields['data'] as $k=>$v){
    if($module == 'lead'){
@@ -210,12 +209,13 @@ if($i>1){ $field_n.=$i; }
 if(isset($meta['primary_key']) && $meta['primary_key']!="" && isset($fields[$meta['primary_key']]['value']) && $fields[$meta['primary_key']]['value']!=""){    
 $search=$fields[$meta['primary_key']]['value'];
 $field=$meta['primary_key'];
-if(isset($meta['fields'][$field]) && !empty($meta['fields'][$field]['is_custom'])){
+$key_fields=array('name','email','phone','title','notes','address','code','title');
+//if(isset($meta['fields'][$field]) && !empty($meta['fields'][$field]['is_custom'])){
+if(!in_array($field,$key_fields)){
  $field='custom_fields';   
 }
-
-$search_response=$this->post_crm($module.'s/search','get',array('term'=>$search,'fields'=>$field));
-///var_dump($search_response,$field,$search); die();
+$search_response=$this->post_crm('v2/'.$module.'s/search','get',array('term'=>$search,'fields'=>$field,'exact_match' => true,'limit' => 20)); // limit =1 returns last item
+//var_dump($search_response,$field,$search); die();
 if(!empty($search_response['data']['items'])){
   $items=$search_response['data']['items'];
   //$item=end($items);
@@ -354,7 +354,7 @@ $post[$k]=(float)$val;
 $post[$k]=$val;      
 }   }
 }
-//var_dump($post); die();
+///var_dump($post); die();
 $name='';
 if(isset($post['first_name'])){
   $name=$post['first_name'];
@@ -665,7 +665,9 @@ $sales_response[]=$product_detail;
 }
 
 public function post_crm($path,$method='get',$body=''){
-       
+       if(!(strpos($path,'v2') === 0)){
+        $path='v1/'.$path;    
+       }
 $url=$this->url.$path.'?api_token='.urlencode($this->api_key);   
 if(is_array($body)&& count($body)>0)
 { 
