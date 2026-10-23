@@ -2,7 +2,7 @@
 Contributors: crmperks
 Tags: ninja forms pipedrive, contact form 7 pipedrive, WPForms pipedrive, elementor forms pipedrive, contact form 7 pipedrive integration
 Requires at least: 3.8
-Tested up to: 7.0
+Tested up to: 7.1
 Stable tag: 1.2.7
 Version: 1.2.7
 Requires PHP: 5.3
