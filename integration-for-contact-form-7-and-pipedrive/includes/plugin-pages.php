@@ -1399,6 +1399,11 @@ return $arr;
   * 
   */
   public function log_detail(){
+          check_ajax_referer('vx_crm_ajax','vx_crm_ajax');
+      if(!current_user_can($this->id.'_read_logs')){
+  esc_html_e('You do not have permissions to access this page','cf7-pipedrive');    
+  return;
+  }
 $log_id=$this->post('id');
 $log=$this->data->get_log_by_id($log_id); 
   $data=json_decode($log['data'],true); 
